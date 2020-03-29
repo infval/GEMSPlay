@@ -514,13 +514,10 @@ int main(int argc, char* argv[])
 	SeqLength = 0x00;	SeqData = NULL;
 	SmpLength = 0x00;	SmpData = NULL;
 
-	if (argc == 5)
-	{
-		LoadDataFile(argv[1], &PatLength, &PatData); // Patch
-		LoadDataFile(argv[2], &EnvLength, &EnvData); // Envelope
-		LoadDataFile(argv[3], &SeqLength, &SeqData); // Sequence
-		LoadDataFile(argv[4], &SmpLength, &SmpData); // Sample File
-	}
+	LoadDataFile(argv[1], &PatLength, &PatData); // Patch
+	LoadDataFile(argv[2], &EnvLength, &EnvData); // Envelope
+	LoadDataFile(argv[3], &SeqLength, &SeqData); // Sequence
+	LoadDataFile(argv[4], &SmpLength, &SmpData); // Sample File
 
 	bool isOK = gemsplay_init(PatData, EnvData, SeqData, SmpData);
 

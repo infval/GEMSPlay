@@ -1,3 +1,4 @@
+#pragma once
 
 void DetectSeqType(void);
 void PreparseInstruments(void);

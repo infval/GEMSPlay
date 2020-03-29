@@ -1,3 +1,5 @@
+#pragma once
+
 void VBLINT(void);
 void DACME(void);
 void gems_init(void);
