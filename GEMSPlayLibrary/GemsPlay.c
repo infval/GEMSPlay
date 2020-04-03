@@ -898,6 +898,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 			
 			SmplPtr = Read24Bit(SAMPLEPTR);
 			XFER68K(DACFIFO + DstAddr, DData, SmplPtr, SmplLeft);
+			DstAddr += SmplLeft;
 			
 			// needs to xfer the next few if needed, for now, just loop back
 			if (FDFSTATE != 5)
@@ -918,6 +919,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 			SmplPtr += SmplLeft;			// add to sample pointer
 			SmplPtr -= SAMP.LOOP;			// then subtract loop length
 			Write24Bit(SAMPLEPTR, SmplPtr);	// store new (beginning of loop ptr)
+			SAMPLECTR = SAMP.LOOP;
 			
 			SmplLeft = 128 - SmplLeft;		// BC <- number to complete this 128byte bank
 			if (! SmplLeft)
@@ -928,6 +930,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 			XFER68K(DACFIFO + DstAddr, DData, SmplPtr, SmplLeft);	// reload FIFO
 			
 			SmplPtr += SmplLeft;			// SAMPLEPTR <- SAMPLEPTR + 128
+			Write24Bit(SAMPLEPTR, SmplPtr);
 			
 			// jp FDFreturn
 		}
@@ -2032,7 +2035,7 @@ static void CLIPALL(void)
 		if (EcbFlags & 0x40)			// in use? [BIT #6]
 			continue;
 		ChnCCB = &CCB[(EcbFlags & 0x0F) << 5];
-		if (ChnCCB[CCBFLAGS] & 0x40)	// running? [BIT #4]
+		if (ChnCCB[CCBFLAGS] & 0x10)	// running? [BIT #4]
 			continue;					// yes - don't clip this env
 		
 		CurECB[ECBCHAN] |= 0x40;		// [SET #6]
@@ -2051,14 +2054,16 @@ static void CLIPLOOP(UINT8* VTblPtr, UINT8 Mode)
 	UINT8 CLIPVNUM;	// [0CF8]
 	UINT8 VFlags;	// Register A
 	UINT8 CurBank;	// Register D
+	UINT8 VFSaved;	// Register D
 	
 	for ( ; VTblPtr[VTBLFLAGS] != 0xFF; VTblPtr += 7)	//clipnxt:
 	{
+		VFSaved = VTblPtr[VTBLFLAGS];	// save it
 		ChnCCB = &CCB[(VTblPtr[VTBLCH] & 0x0F) << 5];
 		if (ChnCCB[CCBFLAGS] & 0x10)	// running? [BIT #4]
 			continue;					// yes - don't clip
 		
-		VFlags = VTblPtr[VTBLFLAGS];	// get vtbl entry
+		VFlags = VFSaved;				// get vtbl entry
 		VFlags &= 0x07;					// get voice num
 		VFlags |= 0x80;					// add free flag
 		VTblPtr[VTBLFLAGS] = VFlags;	// update table
@@ -2070,21 +2075,21 @@ static void CLIPLOOP(UINT8* VTblPtr, UINT8 Mode)
 		CLIPVNUM = VFlags;
 		if (! (Mode & 0x01))			// fm or psg? [BIT #0]
 		{
-			if (VTblPtr[VTBLFLAGS] & 0x20)	// fm - digital mode? [BIT #5]
+			if (VFSaved & 0x20)			// fm - digital mode? [BIT #5]
 			{
-				DacMeEn = 0xC9;				// disable DACME routine
-				FillDacEn = 0xC9;			// disable FILLDACFIFO
-				YM2612_Write(0, 0x2B);		// disable DAC mode
+				DacMeEn = 0xC9;			// disable DACME routine
+				FillDacEn = 0xC9;		// disable FILLDACFIFO
+				YM2612_Write(0, 0x2B);	// disable DAC mode
 				YM2612_Write(1, 0x00);
 			}
 			else
 			{
 				//clipfm:
-				CurBank = 0;				// point to bank 0
-				if (VFlags > 3)				// is voice in bank 1 ?
+				CurBank = 0;			// point to bank 0
+				if (VFlags > 3)			// is voice in bank 1 ?
 				{
-					VFlags -= 4;			// yes, subtract 4 (map 4-6 >> 0-2)
-					CurBank = 2;			// point to bank 1
+					VFlags -= 4;		// yes, subtract 4 (map 4-6 >> 0-2)
+					CurBank = 2;		// point to bank 1
 				}
 #ifdef DUAL_SUPPORT
 				CurBank |= CHIP_BNK(VTblPtr);
@@ -2963,7 +2968,7 @@ static void NOTEOFF(UINT8 MidChn, UINT8 NoteNum)
 		pdata.psgcom[VocFlags] |= 0x02;	// set key off command [SET #2]
 		return;
 	}
-	//trynois:
+	//trynoise:
 	DACxME();
 	VocFlags = DEALLOC(MidChn, NoteNum, PSGVTBLNG);
 	
@@ -3309,7 +3314,7 @@ static void CheckForSongEnd(void)
 	
 	for (CurChn = 0; CurChn < 4; CurChn ++)
 	{
-		if (pdata.psgenv[CurChn])
+		if (pdata.psgenv[CurChn] && pdata.psgcom[CurChn] != 4)
 			ChnMask ++;
 	}
 	
