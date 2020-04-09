@@ -844,10 +844,10 @@ void DACME(void)
 static void FILLDACFIFO(UINT8 ForceFill)
 {
 	UINT8 FillVal;
-	INT16 SmpCntr;		// Reg HL
+	INT32 SmpCntr;		// Reg HL (32-bit for easy underflow check)
 	UINT8 DstAddr;		// Reg E (of DE, D is always 0x1F)
 	UINT32 SmplPtr;
-	UINT8 SmplLeft;		// Reg BC (though B is always 0)
+	UINT16 SmplLeft;	// Reg BC (though B is always 0)
 	
 	if (! ForceFill)
 	{
@@ -873,7 +873,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 		if (SmpCntr > 0)
 		{
 			// FDF4NORM:
-			SAMPLECTR = SmpCntr;
+			SAMPLECTR = (UINT16)SmpCntr;
 			
 			// xfer next 128 samples from (SAMPLEPTR)
 			DstAddr = DACFIFOWPTR;
@@ -891,7 +891,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 		{
 			// FDF4DONE:	// for now, loop back
 			// xfer the samples that are left
-			SmplLeft = SmpCntr + 128;	// save # xfered here
+			SmplLeft = (UINT16)(SmpCntr + 128);	// save # xfered here
 			
 			DstAddr = DACFIFOWPTR;
 			DACFIFOWPTR += 128;			// increment dest addr for next time
@@ -2236,6 +2236,7 @@ static void DOENVELOPE(void)
 					}
 					else
 					{
+						SegCntr --;
 						SegPos ++;
 						CurECB[ECBDELL] = ENV0BUF[SegPos];
 						SegPos ++;
@@ -2243,7 +2244,7 @@ static void DOENVELOPE(void)
 						SegPos ++;
 						DACxME();
 						SegPos += 0x1E80;					// [not in actual code, SegPos is relative to ENV0BUF here]
-						CurECB[ECBPTRL] = (SegPos & 0x00FF) >> 0;
+						CurECB[ECBPTRL] = (SegPos & 0x00FF) >> 0;	// ECB's segment ptr <- ptr to next segment
 						CurECB[ECBPTRH] = (SegPos & 0xFF00) >> 8;
 						// [fall through to envseg]
 					}
@@ -2387,7 +2388,7 @@ static void APPLYBEND(void)
 	for (ChnNum = 0; ChnNum < 16; ChnNum ++, PBPtr ++)
 	{
 		//pbdoneloop:
-		PBPtr = 0;
+		*PBPtr = 0;
 	}
 	
 	return;
@@ -2641,7 +2642,7 @@ static void noteondig(UINT8 MidChn, UINT8* ChnCCB)
 	
 	XFER68K(&SAMP.FLAGS, DData, SmplPos, 12);	// read 12 byte header, into ... sample header cache
 	
-	if (Read24Bit(SAMP.PTR) > 0x200000)			// [not in actual code - >512 KB]
+	if (Read24Bit(SAMP.PTR) > 0x80000)			// [not in actual code - >512 KB]
 		SAMP.FIRST = 0;
 	if (SAMP.FIRST == 0)						// check for non-zero sample length
 	{
@@ -3273,7 +3274,7 @@ void FinishCommandFIFO(void)
 static void CheckForSongEnd(void)
 {
 	UINT8 CurChn;
-	UINT8 ChnMask;
+	UINT16 ChnMask;
 	UINT8* ChnCCB;
 	UINT8* VTblPtr;
 	
