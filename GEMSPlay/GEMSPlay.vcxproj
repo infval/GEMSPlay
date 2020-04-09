@@ -46,7 +46,6 @@
     <ClInclude Include="..\GEMSPlayLibrary\src\stdbool.h" />
     <ClInclude Include="..\GEMSPlayLibrary\src\stdtype.h" />
     <ClInclude Include="..\GEMSPlayLibrary\src\Stream.h" />
-    <ClInclude Include="..\GEMSPlayLibrary\src\types.h" />
     <ClInclude Include="..\GEMSPlayLibrary\src\vgmwrite.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

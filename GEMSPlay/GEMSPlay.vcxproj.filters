@@ -86,9 +86,6 @@
     <ClInclude Include="..\GEMSPlayLibrary\src\Stream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\GEMSPlayLibrary\src\types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\GEMSPlayLibrary\src\vgmwrite.h">
       <Filter>Header Files</Filter>
     </ClInclude>

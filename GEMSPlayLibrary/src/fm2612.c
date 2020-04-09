@@ -2066,6 +2066,9 @@ static void init_timetables(FM_OPN *OPN, double freqbase)
 
 	/* maximal frequency is required for Phase overflow calculation, register size is 17 bits (Nemesis) */
 	OPN->fn_max = (UINT32)( (double)0x20000 * freqbase * (1<<(FREQ_SH-10)) );
+#ifndef DISABLE_GEMSPLAY_DIRTY_FIXES
+	OPN->fn_max = (UINT32)( (double)0x20000 * freqbase * (1<<(FREQ_SH-10)) / 4.4); // Comix Zone, Ariel...
+#endif
 }
 
 /* prescaler set (and make time tables) */

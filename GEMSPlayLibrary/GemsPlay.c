@@ -897,7 +897,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 			DACFIFOWPTR += 128;			// increment dest addr for next time
 			
 			SmplPtr = Read24Bit(SAMPLEPTR);
-			XFER68K(DACFIFO + DstAddr, DData, SmplPtr, SmplLeft);
+			XFER68K(DACFIFO + DstAddr, DData, SmplPtr, (UINT8)SmplLeft);
 			DstAddr += SmplLeft;
 			
 			// needs to xfer the next few if needed, for now, just loop back
@@ -927,7 +927,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 			
 			SAMPLECTR -= SmplLeft;			// subtract these few samples from ctr
 			SmplPtr = Read24Bit(SAMPLEPTR);
-			XFER68K(DACFIFO + DstAddr, DData, SmplPtr, SmplLeft);	// reload FIFO
+			XFER68K(DACFIFO + DstAddr, DData, SmplPtr, (UINT8)SmplLeft);	// reload FIFO
 			
 			SmplPtr += SmplLeft;			// SAMPLEPTR <- SAMPLEPTR + 128
 			Write24Bit(SAMPLEPTR, SmplPtr);
@@ -2760,6 +2760,9 @@ static void noteonfm(UINT8 MidChn, UINT8* ChnCCB)
 	ChnPat = CHPATPTR + 1;						// patch pointer + 1 (past type byte)
 	if (noteon.voice == 2)						// channel 3 ?
 	{
+#ifndef DISABLE_GEMSPLAY_DIRTY_FIXES
+		ChnPat[1] &= 0x7F; // Nightmare Circus, noise after end of some songs
+#endif
 		Ch3ModeReg = ChnPat[1] | 0x15;			// yes - add CH3 mode bits to DACME's reset cmd
 		FMWrgl(0x27, ChnPat[1] | 0x05);			// KEEP TIMER A ENABLED AND RUNNING, but not reset
 	}

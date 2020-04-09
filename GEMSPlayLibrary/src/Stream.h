@@ -1,5 +1,6 @@
 // Stream.h: Header File for constants and structures related to Sound Output
 //
+#pragma once
 
 #ifdef WIN32
 #include <mmsystem.h>

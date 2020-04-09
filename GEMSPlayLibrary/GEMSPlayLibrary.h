@@ -27,6 +27,8 @@ GEMSPLAYLIBRARY_API void gemsplay_pause(void);
 
 GEMSPLAYLIBRARY_API void gemsplay_play(void);
 
+GEMSPLAYLIBRARY_API void gemsplay_set_gems28mode(int enabled);
+
 #ifdef __cplusplus
 }
 #endif

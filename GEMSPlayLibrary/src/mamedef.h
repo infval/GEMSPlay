@@ -1,3 +1,5 @@
+#pragma once
+
 // typedefs to use MAME's (U)INTxx types (copied from MAME\src\ods\odscomm.h)
 #include "stdtype.h"
 

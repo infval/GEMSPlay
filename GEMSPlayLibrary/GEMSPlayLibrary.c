@@ -501,6 +501,12 @@ void gemsplay_play(void)
 	sound_pause(PauseMode);
 }
 
+void gemsplay_set_gems28mode(int enabled)
+{
+	if (!is_gemsplay_init) return;
+	Gems28Mode = enabled;
+}
+
 #if 0
 int main(int argc, char* argv[])
 {
