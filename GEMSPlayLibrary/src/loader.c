@@ -198,7 +198,7 @@ void PreparseGemsSeq(UINT8 SongNo)
 	UINT8 TrkEnd;
 	UINT8 ChnMode;
 	UINT8 TempByt;
-	UINT8 LoopID = 0;
+	UINT8 LoopID;
 	UINT8 LoopCount[0x10];
 	
 	if (! Enable_VGMDumping)
@@ -237,6 +237,7 @@ void PreparseGemsSeq(UINT8 SongNo)
 			ChnMode = 0x00;
 			TrkEnd = 0x00;
 			memset(LoopCount, 0x00, 0x10);
+			LoopID = 0xFF;
 			
 			while(! TrkEnd)
 			{

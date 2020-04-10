@@ -6,11 +6,9 @@
 //       include v2.5 changes.
 //       There's also support for the GEMS 2.8 sequence pointer format.
 
-#include <memory.h>
+#include <stddef.h>
+#include <string.h>
 #include "src/stdtype.h"
-#ifndef NULL
-#define NULL	((void*)0)
-#endif
 
 extern int __cdecl printf(const char *, ...);
 
@@ -702,7 +700,7 @@ static void DOPSGENV(void)
 }
 
 
-/***************************** Command FIFO (from 68000) ************************************/
+/***************************** Command FIFO (from 68000) ***************************************/
 
 
 // GETCBYTE - returns the next command byte in the fifo from the 68k. will wait
@@ -891,7 +889,7 @@ static void FILLDACFIFO(UINT8 ForceFill)
 		{
 			// FDF4DONE:	// for now, loop back
 			// xfer the samples that are left
-			SmplLeft = (UINT16)(SmpCntr + 128);	// save # xfered here
+			SmplLeft = (UINT8)(SmpCntr + 128);	// save # xfered here
 			
 			DstAddr = DACFIFOWPTR;
 			DACFIFOWPTR += 128;			// increment dest addr for next time
@@ -2052,30 +2050,27 @@ static void CLIPLOOP(UINT8* VTblPtr, UINT8 Mode)
 	UINT8* ChnCCB;	// Register HL
 	UINT8* PRTbl;	// PSG Register Table Pointer, Register IY
 	UINT8 CLIPVNUM;	// [0CF8]
-	UINT8 VFlags;	// Register A
+	UINT8 VFlags;	// Register D
 	UINT8 CurBank;	// Register D
-	UINT8 VFSaved;	// Register D
+	UINT8 BnkChn;	// Register A/E
 	
 	for ( ; VTblPtr[VTBLFLAGS] != 0xFF; VTblPtr += 7)	//clipnxt:
 	{
-		VFSaved = VTblPtr[VTBLFLAGS];	// save it
 		ChnCCB = &CCB[(VTblPtr[VTBLCH] & 0x0F) << 5];
 		if (ChnCCB[CCBFLAGS] & 0x10)	// running? [BIT #4]
 			continue;					// yes - don't clip
 		
-		VFlags = VFSaved;				// get vtbl entry
-		VFlags &= 0x07;					// get voice num
-		VFlags |= 0x80;					// add free flag
-		VTblPtr[VTBLFLAGS] = VFlags;	// update table
+		VFlags = VTblPtr[VTBLFLAGS];	// get vtbl entry
+		VTblPtr[VTBLFLAGS] &= 0x07;		// get voice num
+		VTblPtr[VTBLFLAGS] |= 0x80;		// add free flag
 		VTblPtr[VTBLDL] = 0x00;			// clear release and duration timers
 		VTblPtr[VTBLDH] = 0x00;
 		VTblPtr[VTBLRT] = 0x00;
 		
-		VFlags &= 0x07;					// get voice num back
-		CLIPVNUM = VFlags;
+		CLIPVNUM = VTblPtr[VTBLFLAGS] & 0x07;	// get voice num back
 		if (! (Mode & 0x01))			// fm or psg? [BIT #0]
 		{
-			if (VFSaved & 0x20)			// fm - digital mode? [BIT #5]
+			if (VFlags & 0x20)			// fm - digital mode? [BIT #5]
 			{
 				DacMeEn = 0xC9;			// disable DACME routine
 				FillDacEn = 0xC9;		// disable FILLDACFIFO
@@ -2085,33 +2080,34 @@ static void CLIPLOOP(UINT8* VTblPtr, UINT8 Mode)
 			else
 			{
 				//clipfm:
+				BnkChn = CLIPVNUM;
 				CurBank = 0;			// point to bank 0
-				if (VFlags > 3)			// is voice in bank 1 ?
+				if (BnkChn > 3)			// is voice in bank 1 ?
 				{
-					VFlags -= 4;		// yes, subtract 4 (map 4-6 >> 0-2)
+					BnkChn -= 4;		// yes, subtract 4 (map 4-6 >> 0-2)
 					CurBank = 2;		// point to bank 1
 				}
 #ifdef DUAL_SUPPORT
 				CurBank |= CHIP_BNK(VTblPtr);
 #endif
 				//clpafm0:
-				FMWr(CurBank, VFlags, 0x40, 0x7F);	// clamp all EGs
-				FMWr(CurBank, VFlags, 0x44, 0x7F);
-				FMWr(CurBank, VFlags, 0x48, 0x7F);
-				FMWr(CurBank, VFlags, 0x4C, 0x7F);
+				FMWr(CurBank, BnkChn, 0x40, 0x7F);	// clamp all EGs
+				FMWr(CurBank, BnkChn, 0x44, 0x7F);
+				FMWr(CurBank, BnkChn, 0x48, 0x7F);
+				FMWr(CurBank, BnkChn, 0x4C, 0x7F);
 				
 #ifndef DUAL_SUPPORT
 				FMWrite(0, 0x28, CLIPVNUM);	// key off
 #else
-				FMWrite(CurBank & 0x04, 0x28, CLIPVNUM);
+				FMWrite(CurBank & ~0x03, 0x28, CLIPVNUM);
 #endif
 			}
 		}
 		else
 		{
 			//clippsg:
-			PRTbl = &pdata.psgcom[VFlags];	// load psg register table, point to correct register
-			PRTbl[COM] = 4;					// set stop command
+			PRTbl = &pdata.psgcom[CLIPVNUM];	// load psg register table, point to correct register
+			PRTbl[COM] = 4;						// set stop command
 		}
 	}
 	
@@ -2786,7 +2782,7 @@ static void noteonfm(UINT8 MidChn, UINT8* ChnCCB)
 #ifndef DUAL_SUPPORT
 		FMWrgl(0x22, ChnPat[0]);				// write lfo register
 #else
-		FMWrite(CurBnk & 0x04, 0x22, ChnPat[0]);
+		FMWrite(CurBnk & ~0x03, 0x22, ChnPat[0]);
 #endif
 	}
 	//fmlfodis:
@@ -2819,7 +2815,7 @@ static void noteonfm(UINT8 MidChn, UINT8* ChnCCB)
 #ifndef DUAL_SUPPORT
 	FMWrite(0x00, 0x28, (ChnPat[36] << 4) | noteon.voice);
 #else
-	FMWrite(CurBnk & 0x04, 0x28, (ChnPat[36] << 4) | noteon.voice);
+	FMWrite(CurBnk & ~0x03, 0x28, (ChnPat[36] << 4) | noteon.voice);
 #endif
 	
 	return;
@@ -2848,7 +2844,7 @@ static void WRITEFM(const UINT8* InsList, UINT8 Bank, UINT8 Channel)
 		//	;
 		
 		CurReg += Channel;				// add voice num to point at correct register
-		YM2612_Write(Bank, CurReg);
+		YM2612_Write(Bank + 0, CurReg);
 		CurData = *RegList;				// get data offset
 		if (CurData)					// if data offset 0, just write 0
 		{

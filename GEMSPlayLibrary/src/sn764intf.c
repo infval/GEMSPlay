@@ -9,9 +9,7 @@
 //#include "streams.h"
 #include "sn76489.h"
 #include "sn764intf.h"
-
-
-#define NULL	((void *)0)
+#include <stddef.h>
 
 /* for stream system */
 typedef struct _sn764xx_state sn764xx_state;

@@ -19,8 +19,7 @@
 #include "fm.h"
 #include "2612intf.h"
 #include <malloc.h>
-
-#define NULL	((void *)0)
+#include <stddef.h>
 
 typedef struct _ym2612_state ym2612_state;
 struct _ym2612_state
